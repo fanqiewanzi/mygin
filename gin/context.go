@@ -23,7 +23,7 @@ type Context struct {
 	Params map[string]string
 
 	//状态码
-	StatueCode int
+	StatusCode int
 
 	//处理函数集和下标
 	handlers []HandlerFunc
@@ -31,6 +31,9 @@ type Context struct {
 
 	//用来终止后续函数调用
 	isOk bool
+
+	//用来启动HtmlTemplate服务
+	engine *Engine
 }
 
 //Context的构造函数
@@ -61,37 +64,49 @@ func (c *Context) Abort() {
 	c.isOk = false
 }
 
+//调用失败
+func (c *Context) Fail(code int, message string) {
+	c.JSON(code, H{"message": message})
+}
+
+//获取URL中的部分元素
 func (c *Context) Param(key string) string {
 	value, _ := c.Params[key]
 	return value
 }
 
+//返回POST表单中特定的Key对应的value
 func (c *Context) PostForm(key string) string {
 	return c.R.FormValue(key)
 }
 
+//返回URL中key对应的value
 func (c *Context) Query(key string) string {
 	return c.R.URL.Query().Get(key)
 }
 
-func (c *Context) Statue(code int) {
-	c.StatueCode = code
+//设置状态码并在返回头中设置状态码
+func (c *Context) Status(code int) {
+	c.StatusCode = code
 	c.W.WriteHeader(code)
 }
 
+///设置状态码
 func (c *Context) SetHeader(key, value string) {
 	c.W.Header().Set(key, value)
 }
 
+//以string形式返回请求
 func (c *Context) String(code int, format string, value ...interface{}) {
 	c.SetHeader("Content-Type", "text/plain")
-	c.Statue(code)
+	c.Status(code)
 	c.W.Write([]byte(fmt.Sprintf(format, value...)))
 }
 
+//以json形式返回请求
 func (c *Context) JSON(code int, obj interface{}) {
 	c.SetHeader("Content-Type", "application/json")
-	c.Statue(code)
+	c.Status(code)
 	encoder := json.NewEncoder(c.W)
 
 	if err := encoder.Encode(obj); err != nil {
@@ -99,13 +114,18 @@ func (c *Context) JSON(code int, obj interface{}) {
 	}
 }
 
+//以data形式返回请求
 func (c *Context) Data(code int, data []byte) {
-	c.Statue(code)
+	c.Status(code)
 	c.W.Write(data)
 }
 
-func (c *Context) HTML(code int, html string) {
+//以html返回请求
+func (c *Context) HTML(code int, name string, data interface{}) {
 	c.SetHeader("Content-Type", "text/html")
-	c.Statue(code)
-	c.W.Write([]byte(html))
+	c.Status(code)
+
+	if err := c.engine.htmlTemplates.ExecuteTemplate(c.W, name, data); err != nil {
+		c.Fail(500, err.Error())
+	}
 }

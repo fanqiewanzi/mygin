@@ -1,7 +1,9 @@
 package gin
 
 import (
+	"html/template"
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -17,6 +19,10 @@ type Engine struct {
 
 	//Engine拥有的所有组集
 	groups []*GroupRouter
+
+	//html组件模板
+	htmlTemplates *template.Template
+	funcMap       template.FuncMap
 }
 
 type GroupRouter struct {
@@ -47,8 +53,28 @@ func (g *GroupRouter) Group(prefix string) *GroupRouter {
 	return newGroup
 }
 
+//添加中间件方法
 func (g *GroupRouter) Use(handlerFunc ...HandlerFunc) {
 	g.middleWares = append(g.middleWares, handlerFunc...)
+}
+
+func (g *GroupRouter) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+
+	//将任意数量的元素链接到单个路径中
+	absolutePath := path.Join(g.prefix, relativePath)
+	//删除前缀调用处理函数
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+	return func(c *Context) {
+
+		//确认文件是否能成功打开
+		file := c.Param("filePath")
+		if _, err := fs.Open(file); err != nil {
+			c.StatusCode = http.StatusNotFound
+			return
+		}
+		//运行文件系统的处理函数
+		fileServer.ServeHTTP(c.W, c.R)
+	}
 }
 
 //在原有的路由下加入组前缀再添加路由
@@ -77,14 +103,15 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var middleWares []HandlerFunc
 
+	//将engine中所有的Group中
 	for _, group := range engine.groups {
 		if strings.HasPrefix(r.URL.Path, group.prefix) {
 			middleWares = append(middleWares, group.middleWares...)
 		}
 	}
-
 	c := NewContext(w, r)
 	c.handlers = middleWares
+	c.engine = engine
 	engine.router.handle(c)
 }
 
