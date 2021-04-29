@@ -103,7 +103,7 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 
 func (r *router) handle(c *Context) {
 
-	//查找路由解析路径
+	//查找路由解析路径 FIXME:不要存在无意义地换行。
 	n, params := r.getRoute(c.Method, c.Pattern)
 
 	//运行相应处理函数

@@ -53,6 +53,7 @@ func (c *Context) Next() {
 	//因为会在不同的地方调用Next()函数，保证不能执行到前面执行过的函数,调用range来执行的话会导致死循环
 	c.index++
 	for length := len(c.handlers); c.index < length; c.index++ {
+		// FIXME: !c.isOk 直接 break 会不会好些.
 		if c.isOk {
 			c.handlers[c.index](c)
 		}
@@ -100,6 +101,7 @@ func (c *Context) SetHeader(key, value string) {
 func (c *Context) String(code int, format string, value ...interface{}) {
 	c.SetHeader("Content-Type", "text/plain")
 	c.Status(code)
+	// FIXME:返回的error必须处理，不能省略掉。
 	c.W.Write([]byte(fmt.Sprintf(format, value...)))
 }
 

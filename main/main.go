@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// FIXME:别这么写测试，去看看接口测试怎么做，顺便看看单元测试。
 func main() {
 	r := gin.New()
 	r.Use(gin.Logger())

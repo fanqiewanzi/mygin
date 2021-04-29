@@ -4,21 +4,21 @@ import (
 	"html/template"
 	"net/http"
 	"path"
-	"strings"
 )
 
 type HandlerFunc func(c *Context)
 
+// FIXME：注意换行问题,不要有无意义的换行,保证代码清晰.
 type Engine struct {
 
-	//继承GroupRouter，拥有其所有方法
+	//继承GroupRouter，拥有其所有方法  // FIXME:无意义换行
 	*GroupRouter
 
 	//Engine的路由树
 	router *router
 
-	//Engine拥有的所有组集
-	groups []*GroupRouter
+	//Engine拥有的所有组集 FIXME:这个结构的意义是什么
+	//groups []*GroupRouter
 
 	//html组件模板
 	htmlTemplates *template.Template
@@ -41,7 +41,7 @@ type GroupRouter struct {
 func New() *Engine {
 	e := &Engine{router: NewRouter()}
 	e.GroupRouter = &GroupRouter{engine: e}
-	e.groups = append(e.groups, e.GroupRouter)
+	//e.groups = append(e.groups, e.GroupRouter)
 	return e
 }
 
@@ -49,7 +49,7 @@ func New() *Engine {
 func (g *GroupRouter) Group(prefix string) *GroupRouter {
 	e := g.engine
 	newGroup := &GroupRouter{prefix: prefix, engine: e}
-	e.groups = append(e.groups, newGroup)
+	//e.groups = append(e.groups, newGroup)
 	return newGroup
 }
 
@@ -60,7 +60,7 @@ func (g *GroupRouter) Use(handlerFunc ...HandlerFunc) {
 
 func (g *GroupRouter) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
 
-	//将任意数量的元素链接到单个路径中
+	//将任意数量的元素链接到单个路径中 // FIXME:空格问题
 	absolutePath := path.Join(g.prefix, relativePath)
 	//删除前缀调用处理函数
 	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
@@ -100,15 +100,14 @@ func (g *GroupRouter) PUT(pattern string, handler HandlerFunc) {
 }
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	var middleWares []HandlerFunc
 
-	//将engine中所有的Group中
-	for _, group := range engine.groups {
-		if strings.HasPrefix(r.URL.Path, group.prefix) {
-			middleWares = append(middleWares, group.middleWares...)
-		}
-	}
+	////将engine中所有的Group中
+	//for _, group := range engine.groups {
+	//	if strings.HasPrefix(r.URL.Path, group.prefix) {
+	//		middleWares = append(middleWares, group.middleWares...)
+	//	}
+	//}
 	c := NewContext(w, r)
 	c.handlers = middleWares
 	c.engine = engine
